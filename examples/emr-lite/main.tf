@@ -1,7 +1,26 @@
 locals {
-  availability_zone = "ap-singapore-2"
-  subnet_id = "subnet-6g5sypcb"
-  vpc_id    = "vpc-mbxaeij4"
+  region = "ap-jakarta"
+  name = "test-emr-lite"
+  availability_zones = ["ap-jakarta-2"]
+
+  tags = { create: "terraform"}
+}
+provider "tencentcloud" {
+  region = local.region
+}
+module "network" {
+  source  = "terraform-tencentcloud-modules/vpc/tencentcloud"
+  version = "1.1.0"
+  vpc_name         = local.name
+  vpc_cidr         = "10.0.0.0/16"
+  vpc_is_multicast = false
+  tags             = local.tags
+
+  availability_zones = local.availability_zones
+  subnet_name        = local.name
+  subnet_cidrs       = ["10.0.0.0/24"]
+  subnet_is_multicast = false
+  subnet_tags        = local.tags
 }
 
 module "emr-lite" {
@@ -16,11 +35,11 @@ module "emr-lite" {
   zone_settings = [
     {
       node_num  = 3
-      zone      = local.availability_zone
+      zone      = local.availability_zones[0]
       vpc_settings = [ // support only one vpc
         {
-          subnet_id = local.subnet_id
-          vpc_id    = local.vpc_id
+          subnet_id = module.network.subnet_id[0]
+          vpc_id    =  module.network.vpc_id
         }
       ]
 
